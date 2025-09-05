@@ -30,23 +30,16 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/blog", blogRoute);
 app.use("/api/v1/comment", commentRoute);
 
-// -------------------- Serve frontend --------------------
-import { fileURLToPath } from "url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Serve frontend in production
+const __dirname = path.resolve();
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "frontend/dist")));
+  app.get("*", (_, res) =>
+    res.sendFile(path.resolve(__dirname, "frontend/dist/index.html"))
+  );
+}
 
-// Adjust folder depending on your frontend build tool
-const frontendPath = path.join(__dirname, "frontend", "build"); // CRA
-// const frontendPath = path.join(__dirname, "frontend", "dist"); // Vite
-
-app.use(express.static(frontendPath));
-
-app.get("*", (_, res) =>
-  res.sendFile(path.resolve(frontendPath, "index.html"))
-);
-// --------------------------------------------------------
-
-// Start server & connect DB
+// Start server & coannect DB
 connectDB()
   .then(() => {
     console.log("MongoDB connected successfully");
