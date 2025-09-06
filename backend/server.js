@@ -7,8 +7,12 @@ import commentRoute from "./routes/comment.route.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config(); // Load .env variables
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,10 +22,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// CORS: allow local dev and production
+// CORS: allow local dev + production
 const allowedOrigins = [
   process.env.CLIENT_URL || "http://localhost:5173",
-  "http://localhost:5000",
+  `http://localhost:${PORT}`,
 ];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
@@ -30,23 +34,23 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/blog", blogRoute);
 app.use("/api/v1/comment", commentRoute);
 
-// Serve frontend in production
-const __dirname = path.resolve();
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "frontend/dist")));
-  app.get("*", (_, res) =>
-    res.sendFile(path.resolve(__dirname, "frontend/dist/index.html"))
-  );
-}
+// Serve frontend build
+const frontendPath = path.join(__dirname, "../frontend/dist");
+app.use(express.static(frontendPath));
 
-// Start server & coannect DB
+// Catch-all: serve index.html for React Router
+app.get("*", (_, res) => {
+  res.sendFile(path.resolve(frontendPath, "index.html"));
+});
+
+// Connect to MongoDB and start server
 connectDB()
   .then(() => {
     console.log("MongoDB connected successfully");
     app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error("Failed to connect to MongoDB:", err);
+    console.error("MongoDB connection failed:", err);
   });
